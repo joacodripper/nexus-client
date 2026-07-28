@@ -109,8 +109,8 @@ export default function Dashboard() {
           </div>
         ) : (
           projects.map(project => {
-            const totalTasks = project.tasks?.length || 0;
-            const completedTasks = project.tasks?.filter(t => t.status === 'completed').length || 0;
+            const totalTasks = project.tasks ? project.tasks.length : 0;
+            const completedTasks = project.tasks ? project.tasks.filter(t => t.status === 'completed').length : 0;
             const progress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
             return (
