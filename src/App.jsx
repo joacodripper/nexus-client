@@ -11,6 +11,7 @@ function App() {
     estado: 'pendiente'
   })
 
+  // 1. LEER los proyectos (R del CRUD)
   useEffect(() => {
     fetch('https://nexus-api-backend.onrender.com/api/proyectos/')
       .then(res => res.json())
@@ -24,6 +25,7 @@ function App() {
       })
   }, [])
 
+  // 2. CREAR un proyecto (C del CRUD)
   const crearProyecto = (e) => {
     e.preventDefault();
     
@@ -40,6 +42,24 @@ function App() {
       setNuevoProyecto({ titulo: '', descripcion: '', estado: 'pendiente' })
     })
     .catch(error => console.error("Error al guardar:", error))
+  }
+
+  // 3. ELIMINAR un proyecto (D del CRUD) - ¡NUEVO!
+  const eliminarProyecto = (id) => {
+    // Pedimos confirmación para no borrar por accidente
+    if (!window.confirm("¿Estás seguro de que quieres eliminar este proyecto?")) return;
+
+    // Le decimos a la API: "¡Oye, usa el método DELETE en este ID!"
+    fetch(`https://nexus-api-backend.onrender.com/api/proyectos/${id}/`, {
+      method: 'DELETE'
+    })
+    .then(res => {
+      if (res.ok) {
+        // Si Render lo borró con éxito, lo quitamos de la pantalla instantáneamente
+        setProyectos(proyectos.filter(proyecto => proyecto.id !== id))
+      }
+    })
+    .catch(error => console.error("Error al eliminar:", error))
   }
 
   return (
@@ -81,7 +101,19 @@ function App() {
         <div className="cuadricula-proyectos">
           {proyectos.map(proyecto => (
             <div key={proyecto.id} className="tarjeta">
-              <h2>{proyecto.titulo}</h2>
+              
+              {/* ¡NUEVO! Agrupamos el título y el botón del basurero */}
+              <div className="cabecera-tarjeta">
+                <h2>{proyecto.titulo}</h2>
+                <button 
+                  onClick={() => eliminarProyecto(proyecto.id)} 
+                  className="btn-eliminar"
+                  title="Eliminar proyecto"
+                >
+                  🗑️
+                </button>
+              </div>
+
               <p className="descripcion">{proyecto.descripcion}</p>
               <div className="pie-tarjeta">
                 <span className={`etiqueta ${proyecto.estado}`}>

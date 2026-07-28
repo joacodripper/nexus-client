@@ -118,3 +118,24 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+/* Estilos para el botón de eliminar y la cabecera de la tarjeta */
+.cabecera-tarjeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.btn-eliminar {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-eliminar:hover {
+  background-color: #fee2e2;
+  transform: scale(1.1);
+}
