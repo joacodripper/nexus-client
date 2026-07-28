@@ -11,7 +11,7 @@ function App() {
     estado: 'pendiente'
   })
 
-  // 1. LEER los proyectos (R del CRUD)
+  // 1. LEER (Read)
   useEffect(() => {
     fetch('https://nexus-api-backend.onrender.com/api/proyectos/')
       .then(res => res.json())
@@ -19,21 +19,15 @@ function App() {
         setProyectos(datos)
         setCargando(false)
       })
-      .catch(error => {
-        console.error("Error:", error)
-        setCargando(false)
-      })
+      .catch(error => console.error("Error:", error))
   }, [])
 
-  // 2. CREAR un proyecto (C del CRUD)
+  // 2. CREAR (Create)
   const crearProyecto = (e) => {
     e.preventDefault();
-    
     fetch('https://nexus-api-backend.onrender.com/api/proyectos/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(nuevoProyecto)
     })
     .then(res => res.json())
@@ -44,22 +38,33 @@ function App() {
     .catch(error => console.error("Error al guardar:", error))
   }
 
-  // 3. ELIMINAR un proyecto (D del CRUD) - ¡NUEVO!
+  // 3. ELIMINAR (Delete)
   const eliminarProyecto = (id) => {
-    // Pedimos confirmación para no borrar por accidente
     if (!window.confirm("¿Estás seguro de que quieres eliminar este proyecto?")) return;
-
-    // Le decimos a la API: "¡Oye, usa el método DELETE en este ID!"
+    
     fetch(`https://nexus-api-backend.onrender.com/api/proyectos/${id}/`, {
       method: 'DELETE'
     })
     .then(res => {
-      if (res.ok) {
-        // Si Render lo borró con éxito, lo quitamos de la pantalla instantáneamente
-        setProyectos(proyectos.filter(proyecto => proyecto.id !== id))
-      }
+      if (res.ok) setProyectos(proyectos.filter(p => p.id !== id))
     })
     .catch(error => console.error("Error al eliminar:", error))
+  }
+
+  // 4. ACTUALIZAR (Update) - ¡LA ÚLTIMA PIEZA! 🧩
+  const actualizarEstado = (id, nuevoEstado) => {
+    // Usamos el método PATCH porque solo queremos cambiar un pequeño pedazo del proyecto (el estado)
+    fetch(`https://nexus-api-backend.onrender.com/api/proyectos/${id}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado: nuevoEstado })
+    })
+    .then(res => res.json())
+    .then(proyectoActualizado => {
+      // Actualizamos solo esa tarjeta en la pantalla sin recargar
+      setProyectos(proyectos.map(p => p.id === id ? proyectoActualizado : p))
+    })
+    .catch(error => console.error("Error al actualizar:", error))
   }
 
   return (
@@ -101,25 +106,25 @@ function App() {
         <div className="cuadricula-proyectos">
           {proyectos.map(proyecto => (
             <div key={proyecto.id} className="tarjeta">
-              
-              {/* ¡NUEVO! Agrupamos el título y el botón del basurero */}
               <div className="cabecera-tarjeta">
                 <h2>{proyecto.titulo}</h2>
-                <button 
-                  onClick={() => eliminarProyecto(proyecto.id)} 
-                  className="btn-eliminar"
-                  title="Eliminar proyecto"
+                <button onClick={() => eliminarProyecto(proyecto.id)} className="btn-eliminar" title="Eliminar proyecto">🗑️</button>
+              </div>
+              <p className="descripcion">{proyecto.descripcion}</p>
+              
+              <div className="pie-tarjeta">
+                {/* ¡Aquí está la magia! Ahora es un menú seleccionable */}
+                <select 
+                  className={`etiqueta select-estado ${proyecto.estado}`}
+                  value={proyecto.estado}
+                  onChange={(e) => actualizarEstado(proyecto.id, e.target.value)}
                 >
-                  🗑️
-                </button>
+                  <option value="pendiente">PENDIENTE</option>
+                  <option value="en_progreso">EN PROGRESO</option>
+                  <option value="completado">COMPLETADO</option>
+                </select>
               </div>
 
-              <p className="descripcion">{proyecto.descripcion}</p>
-              <div className="pie-tarjeta">
-                <span className={`etiqueta ${proyecto.estado}`}>
-                  {proyecto.estado.replace('_', ' ').toUpperCase()}
-                </span>
-              </div>
             </div>
           ))}
         </div>
