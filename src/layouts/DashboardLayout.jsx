@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { LogOut, FolderKanban, CheckSquare, Clock, Moon, Sun } from 'lucide-react';
@@ -7,18 +7,32 @@ export default function DashboardLayout() {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   
-  // Theme state initialized from localStorage
+  // Tema inicial desde localStorage
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('nexus-theme') || 'dark';
   });
+  const firstRender = useRef(true);
 
   useEffect(() => {
-    if (theme === 'light') {
-      document.body.classList.add('light-theme');
-    } else {
-      document.body.classList.remove('light-theme');
-    }
+    // Aplicamos la clase en <html> (no en <body>): algunos navegadores móviles
+    // dejan la pantalla en blanco al repintar en vivo los colores del body.
+    document.documentElement.classList.toggle('light-theme', theme === 'light');
     localStorage.setItem('nexus-theme', theme);
+
+    // En el primer render no hay nada que repintar todavía.
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+
+    // Al cambiar el tema, algunos navegadores móviles fallan el repintado y la
+    // pantalla queda en blanco hasta recargar. Forzar un reflow lo corrige.
+    requestAnimationFrame(() => {
+      document.body.style.display = 'none';
+      requestAnimationFrame(() => {
+        document.body.style.display = '';
+      });
+    });
   }, [theme]);
 
   const toggleTheme = () => {
@@ -40,7 +54,7 @@ export default function DashboardLayout() {
           <h2>NEXUS</h2>
         </div>
         <div className="user-profile">
-          <div className="avatar">{user.username.charAt(0).toUpperCase()}</div>
+          <div className="avatar">{(user.username || '?').charAt(0).toUpperCase()}</div>
           <span>{user.username}</span>
         </div>
         
@@ -65,15 +79,15 @@ export default function DashboardLayout() {
           </NavLink>
         </nav>
         
-        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <button className="btn-ghost" onClick={toggleTheme} style={{ justifyContent: 'flex-start' }}>
+        <div className="sidebar-actions">
+          <button className="btn-ghost" onClick={toggleTheme}>
             {theme === 'dark' ? (
               <><Sun size={18} /> Modo Claro</>
             ) : (
               <><Moon size={18} /> Modo Oscuro</>
             )}
           </button>
-          <button className="btn-ghost btn-logout" onClick={handleLogout} style={{ justifyContent: 'flex-start' }}>
+          <button className="btn-ghost btn-logout" onClick={handleLogout}>
             <LogOut size={18} /> Cerrar Sesión
           </button>
         </div>

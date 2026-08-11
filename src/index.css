@@ -17,7 +17,7 @@
   --success: #10b981;
 }
 
-.light-theme {
+:root.light-theme {
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
   --text-primary: #0f172a;
@@ -42,7 +42,9 @@ body {
   color: var(--text-primary);
   line-height: 1.5;
   min-height: 100vh;
-  overflow-x: hidden;
+  /* 'clip' evita el scroll horizontal sin el bug de pantalla en blanco
+     que 'hidden' causa en algunos navegadores móviles al repintar. */
+  overflow-x: clip;
 }
 
 a {
@@ -288,6 +290,24 @@ input:focus {
   text-decoration: underline;
 }
 
+.auth-back {
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.auth-back a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+
+.auth-back a:hover {
+  color: var(--accent);
+}
+
 /* Dashboard */
 .dashboard-container {
   display: flex;
@@ -359,10 +379,15 @@ input:focus {
   color: var(--accent);
 }
 
-.btn-logout {
+.sidebar-actions {
   margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.btn-logout {
   color: var(--error);
-  justify-content: flex-start;
 }
 
 .btn-logout:hover {
@@ -936,4 +961,87 @@ input:focus {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 0.5rem;
+}
+
+/* ===== Responsive: móviles y tablets ===== */
+@media (max-width: 768px) {
+  /* El blur (backdrop-filter) causa pantallas en blanco en algunos navegadores
+     móviles al cambiar de tema. En pantallas chicas lo desactivamos. */
+  .glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /* El dashboard pasa de columna lateral a barra superior */
+  .dashboard-container {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-right: none;
+    border-bottom: 1px solid var(--glass-border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .sidebar-header {
+    margin-bottom: 0;
+    margin-right: auto;
+  }
+
+  .sidebar-header h2 {
+    display: none;
+  }
+
+  .user-profile {
+    display: none;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    gap: 0.25rem;
+    flex: 0 0 auto;
+  }
+
+  .nav-item {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.85rem;
+    gap: 0.4rem;
+  }
+
+  .sidebar-actions {
+    flex-direction: row;
+    margin-top: 0;
+    gap: 0.25rem;
+  }
+
+  .sidebar-actions .btn-ghost {
+    padding: 0.5rem 0.6rem;
+  }
+
+  .dashboard-content {
+    padding: 1.25rem 1rem;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .create-project-form {
+    width: 100%;
+  }
+
+  .auth-card {
+    padding: 1.5rem;
+  }
 }

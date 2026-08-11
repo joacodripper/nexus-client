@@ -1,7 +1,7 @@
-import React, { useState, useContext } from 'react';
+import { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, ArrowLeft } from 'lucide-react';
 
 export default function Register() {
   const [username, setUsername] = useState('');
@@ -25,6 +25,9 @@ export default function Register() {
   return (
     <div className="auth-container">
       <div className="auth-card glass">
+        <div className="auth-back">
+          <Link to="/"><ArrowLeft size={16} /> Volver al inicio</Link>
+        </div>
         <div className="auth-header">
           <UserPlus className="icon-accent" size={32} />
           <h2>Crear Cuenta</h2>

@@ -1,6 +1,7 @@
-import React from 'react';
+import { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, AuthContext } from './context/AuthContext';
+import { AuthProvider } from './context/AuthProvider';
+import { AuthContext } from './context/AuthContext';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -9,14 +10,12 @@ import ProjectDetails from './pages/ProjectDetails';
 import DashboardLayout from './layouts/DashboardLayout';
 import AllTasks from './pages/AllTasks';
 import Activity from './pages/Activity';
-import './App.css'; // Mantenemos importaciones base si las hay
 
 function ProtectedRoute({ children }) {
-  const { user, loading } = React.useContext(AuthContext);
-  
-  if (loading) return <div className="loading-state">Cargando...</div>;
+  const { user } = useContext(AuthContext);
+
   if (!user) return <Navigate to="/login" />;
-  
+
   return children;
 }
 
@@ -28,7 +27,7 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          
+
           <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/project/:id" element={<ProjectDetails />} />

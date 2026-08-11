@@ -1,58 +1,54 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import { useEffect, useState } from 'react';
 import { Clock, FolderKanban, CheckSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { get } from '../api';
 
 export default function Activity() {
-  const { user, API_URL } = useContext(AuthContext);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchData();
-  }, [user]);
+    let ignore = false;
 
-  const fetchData = async () => {
-    try {
-      // Get projects
-      const projectsRes = await fetch(`${API_URL}/projects/`, {
-        headers: { 'Authorization': `Token ${user.token}` }
+    Promise.all([get('/projects/'), get('/tasks/')])
+      .then(async ([projectsRes, tasksRes]) => {
+        const projectsData = projectsRes.ok ? await projectsRes.json() : [];
+        const tasksData = tasksRes.ok ? await tasksRes.json() : [];
+
+        // Combinar y ordenar por más reciente
+        const combined = [
+          ...projectsData.map((p) => ({
+            id: `p-${p.id}`,
+            type: 'project',
+            title: p.title,
+            date: new Date(p.created_at),
+            link: `/project/${p.id}`,
+          })),
+          ...tasksData.map((t) => ({
+            id: `t-${t.id}`,
+            type: 'task',
+            title: t.title,
+            date: new Date(t.created_at),
+            link: `/project/${t.project}`,
+          })),
+        ].sort((a, b) => b.date - a.date);
+
+        return combined;
+      })
+      .then((combined) => {
+        if (ignore) return;
+        setActivities(combined);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching activity:', error);
+        if (!ignore) setLoading(false);
       });
-      const projectsData = projectsRes.ok ? await projectsRes.json() : [];
 
-      // Get tasks
-      const tasksRes = await fetch(`${API_URL}/tasks/`, {
-        headers: { 'Authorization': `Token ${user.token}` }
-      });
-      const tasksData = tasksRes.ok ? await tasksRes.json() : [];
-
-      // Combine and format
-      const combined = [
-        ...projectsData.map(p => ({
-          id: `p-${p.id}`,
-          type: 'project',
-          title: p.title,
-          date: new Date(p.created_at),
-          link: `/project/${p.id}`
-        })),
-        ...tasksData.map(t => ({
-          id: `t-${t.id}`,
-          type: 'task',
-          title: t.title,
-          date: new Date(t.created_at),
-          link: `/project/${t.project}`
-        }))
-      ];
-
-      // Sort by newest first
-      combined.sort((a, b) => b.date - a.date);
-      setActivities(combined);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching activity:', error);
-      setLoading(false);
-    }
-  };
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   return (
     <main className="dashboard-content">

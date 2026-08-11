@@ -1,58 +1,45 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import { useEffect, useState } from 'react';
 import { CheckSquare, Trash2, FolderKanban } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { get, patch, del } from '../api';
 
 export default function AllTasks() {
-  const { user, API_URL } = useContext(AuthContext);
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState({});
 
   useEffect(() => {
-    fetchData();
-  }, [user]);
+    let ignore = false;
 
-  const fetchData = async () => {
-    try {
-      // Get all tasks
-      const tasksRes = await fetch(`${API_URL}/tasks/`, {
-        headers: { 'Authorization': `Token ${user.token}` }
-      });
-      if (tasksRes.ok) {
-        const tasksData = await tasksRes.json();
+    Promise.all([get('/tasks/'), get('/projects/')])
+      .then(async ([tasksRes, projectsRes]) => {
+        const tasksData = tasksRes.ok ? await tasksRes.json() : [];
+        const projectsData = projectsRes.ok ? await projectsRes.json() : [];
+        return { tasksData, projectsData };
+      })
+      .then(({ tasksData, projectsData }) => {
+        if (ignore) return;
         setTasks(tasksData);
-      }
 
-      // Get projects to map project IDs to titles
-      const projectsRes = await fetch(`${API_URL}/projects/`, {
-        headers: { 'Authorization': `Token ${user.token}` }
-      });
-      if (projectsRes.ok) {
-        const projectsData = await projectsRes.json();
+        // Mapear IDs de proyecto a títulos
         const projMap = {};
-        projectsData.forEach(p => {
+        projectsData.forEach((p) => {
           projMap[p.id] = p.title;
         });
         setProjects(projMap);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-  };
+      })
+      .catch((error) => console.error('Error fetching data:', error));
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const handleUpdateTaskStatus = async (taskId, newStatus) => {
     try {
-      const response = await fetch(`${API_URL}/tasks/${taskId}/`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Token ${user.token}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      
+      const response = await patch(`/tasks/${taskId}/`, { status: newStatus });
+
       if (response.ok) {
-        setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+        setTasks(tasks.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
       }
     } catch (error) {
       console.error('Error updating task:', error);
@@ -60,17 +47,12 @@ export default function AllTasks() {
   };
 
   const handleDeleteTask = async (taskId) => {
-    if (!window.confirm("¿Eliminar esta tarea?")) return;
+    if (!window.confirm('¿Eliminar esta tarea?')) return;
     try {
-      const response = await fetch(`${API_URL}/tasks/${taskId}/`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Token ${user.token}`
-        }
-      });
-      
+      const response = await del(`/tasks/${taskId}/`);
+
       if (response.ok) {
-        setTasks(tasks.filter(t => t.id !== taskId));
+        setTasks(tasks.filter((t) => t.id !== taskId));
       }
     } catch (error) {
       console.error('Error deleting task:', error);
@@ -94,19 +76,23 @@ export default function AllTasks() {
             <p>Ve a un proyecto para crear nuevas tareas.</p>
           </div>
         ) : (
-          tasks.map(task => (
+          tasks.map((task) => (
             <div key={task.id} className="task-card glass animate-fade-in-up">
               <div className="task-info">
                 <h3>{task.title}</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
                   <FolderKanban size={14} color="var(--text-secondary)" />
-                  <Link to={`/project/${task.project}`} className="text-secondary" style={{ fontSize: '0.9rem', textDecoration: 'none' }}>
+                  <Link
+                    to={`/project/${task.project}`}
+                    className="text-secondary"
+                    style={{ fontSize: '0.9rem', textDecoration: 'none' }}
+                  >
                     {projects[task.project] || 'Proyecto...'}
                   </Link>
                 </div>
               </div>
               <div className="task-actions">
-                <select 
+                <select
                   className={`tag tag-${task.status}`}
                   value={task.status}
                   onChange={(e) => handleUpdateTaskStatus(task.id, e.target.value)}
@@ -115,8 +101,8 @@ export default function AllTasks() {
                   <option value="in_progress">En Progreso</option>
                   <option value="completed">Completada</option>
                 </select>
-                <button 
-                  className="btn-icon-danger" 
+                <button
+                  className="btn-icon-danger"
                   onClick={() => handleDeleteTask(task.id)}
                   title="Eliminar tarea"
                 >

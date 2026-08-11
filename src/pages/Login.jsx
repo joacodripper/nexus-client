@@ -1,7 +1,7 @@
-import React, { useState, useContext } from 'react';
+import { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
+import { LogIn, ArrowLeft } from 'lucide-react';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -24,6 +24,9 @@ export default function Login() {
   return (
     <div className="auth-container">
       <div className="auth-card glass">
+        <div className="auth-back">
+          <Link to="/"><ArrowLeft size={16} /> Volver al inicio</Link>
+        </div>
         <div className="auth-header">
           <LogIn className="icon-accent" size={32} />
           <h2>Iniciar Sesión</h2>

@@ -1,69 +1,65 @@
-import React, { useContext, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
 import { ArrowLeft, Plus, Trash2, LayoutList, CheckSquare } from 'lucide-react';
+import { get, post, patch, del } from '../api';
 
 export default function ProjectDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, API_URL } = useContext(AuthContext);
-  
+
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [newTaskTitle, setNewTaskTitle] = useState('');
 
+  const fetchProject = useCallback(async () => {
+    // Detalle del proyecto + sus tareas (filtradas en el servidor)
+    const response = await get(`/projects/${id}/`);
+    if (!response.ok) return null;
+
+    const projectData = await response.json();
+    const tasksResponse = await get(`/tasks/?project=${id}`);
+    const tasksData = tasksResponse.ok ? await tasksResponse.json() : [];
+
+    return { project: projectData, tasks: tasksData };
+  }, [id]);
+
   useEffect(() => {
-    fetchProject();
-  }, [id, user]);
-
-  const fetchProject = async () => {
-    try {
-      // Get project details
-      const response = await fetch(`${API_URL}/projects/${id}/`, {
-        headers: { 'Authorization': `Token ${user.token}` }
+    let ignore = false;
+    fetchProject()
+      .then((data) => {
+        if (ignore) return;
+        if (!data) {
+          navigate('/dashboard'); // Go back if not found
+          return;
+        }
+        setProject(data.project);
+        setTasks(data.tasks);
+      })
+      .catch((error) => {
+        console.error('Error fetching project:', error);
+        if (!ignore) navigate('/dashboard');
       });
-      if (response.ok) {
-        const data = await response.json();
-        setProject(data);
-      } else {
-        navigate('/dashboard'); // Go back if not found
-      }
-
-      // Get tasks
-      const tasksResponse = await fetch(`${API_URL}/tasks/`, {
-        headers: { 'Authorization': `Token ${user.token}` }
-      });
-      if (tasksResponse.ok) {
-        const tasksData = await tasksResponse.json();
-        // Filter tasks that belong to this project ID
-        setTasks(tasksData.filter(t => t.project === parseInt(id)));
-      }
-    } catch (error) {
-      console.error('Error fetching project:', error);
-    }
-  };
+    return () => {
+      ignore = true;
+    };
+  }, [fetchProject, navigate]);
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
 
     try {
-      const response = await fetch(`${API_URL}/tasks/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Token ${user.token}`
-        },
-        body: JSON.stringify({ 
-          title: newTaskTitle, 
-          status: 'pending',
-          project: parseInt(id)
-        })
+      const response = await post('/tasks/', {
+        title: newTaskTitle,
+        status: 'pending',
+        project: parseInt(id, 10),
       });
-      
+
       if (response.ok) {
         setNewTaskTitle('');
-        fetchProject(); // Refresh tasks
+        fetchProject().then((data) => {
+          if (data) setTasks(data.tasks);
+        }); // Refresh tasks
       }
     } catch (error) {
       console.error('Error creating task:', error);
@@ -72,18 +68,11 @@ export default function ProjectDetails() {
 
   const handleUpdateTaskStatus = async (taskId, newStatus) => {
     try {
-      const response = await fetch(`${API_URL}/tasks/${taskId}/`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Token ${user.token}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      
+      const response = await patch(`/tasks/${taskId}/`, { status: newStatus });
+
       if (response.ok) {
         // Update local state without fetching all again
-        setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+        setTasks(tasks.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
       }
     } catch (error) {
       console.error('Error updating task:', error);
@@ -91,17 +80,12 @@ export default function ProjectDetails() {
   };
 
   const handleDeleteTask = async (taskId) => {
-    if (!window.confirm("¿Eliminar esta tarea?")) return;
+    if (!window.confirm('¿Eliminar esta tarea?')) return;
     try {
-      const response = await fetch(`${API_URL}/tasks/${taskId}/`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Token ${user.token}`
-        }
-      });
-      
+      const response = await del(`/tasks/${taskId}/`);
+
       if (response.ok) {
-        setTasks(tasks.filter(t => t.id !== taskId));
+        setTasks(tasks.filter((t) => t.id !== taskId));
       }
     } catch (error) {
       console.error('Error deleting task:', error);
@@ -124,8 +108,8 @@ export default function ProjectDetails() {
         </header>
 
         <form className="create-task-form glass" onSubmit={handleCreateTask}>
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Escribe una nueva tarea..."
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
@@ -143,13 +127,13 @@ export default function ProjectDetails() {
               <p>Añade tareas arriba para comenzar a organizarte.</p>
             </div>
           ) : (
-            tasks.map(task => (
+            tasks.map((task) => (
               <div key={task.id} className="task-card glass animate-fade-in-up">
                 <div className="task-info">
                   <h3>{task.title}</h3>
                 </div>
                 <div className="task-actions">
-                  <select 
+                  <select
                     className={`tag tag-${task.status}`}
                     value={task.status}
                     onChange={(e) => handleUpdateTaskStatus(task.id, e.target.value)}
@@ -158,8 +142,8 @@ export default function ProjectDetails() {
                     <option value="in_progress">En Progreso</option>
                     <option value="completed">Completada</option>
                   </select>
-                  <button 
-                    className="btn-icon-danger" 
+                  <button
+                    className="btn-icon-danger"
                     onClick={() => handleDeleteTask(task.id)}
                     title="Eliminar tarea"
                   >
